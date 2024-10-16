@@ -19,7 +19,6 @@ void app_main(void)
 
 }
 
-ssd1306_handle_t oled ;
 
 void Task_main(void* param)
 {
