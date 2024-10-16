@@ -1,2 +1,2 @@
-idf_component_register(SRCS "qmax-iot.c"
+idf_component_register(SRCS "display.c" "qmax-iot.c"
                     INCLUDE_DIRS ".")
