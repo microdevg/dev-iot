@@ -21,12 +21,4 @@ Para ejecutar QMAX-IOT, asegúrate de cumplir con los siguientes requisitos:
   - Conexión serie o Ethernet para Modbus RTU/TCP.
 
 - **Software**:
-  - **Espressif IoT Development Framework (IDF.py)** para programar el ESP32.
-  - Python 3.x (para herramientas adicionales)
-  - Librerías:
-    - `pymodbus` (para la comunicación Modbus)
-    - `paho-mqtt` (para el envío de datos a través de MQTT)
-  
-  Puedes instalar las dependencias ejecutando:
-  ```bash
-  pip install pymodbus paho-mqtt
+  - **Espressif IoT Development Framework (IDF.py)** 

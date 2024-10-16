@@ -19,11 +19,14 @@ void app_main(void)
 
 }
 
-
+ssd1306_handle_t oled ;
 
 void Task_main(void* param)
 {
     int* _counter = (int*)param;
+    
+
+
     while (true) {
         printf("counter:%d\n",(*_counter));
         (*_counter)++;
