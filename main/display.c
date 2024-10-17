@@ -11,9 +11,25 @@
 #include "driver/i2c_master.h"
 #include "esp_lvgl_port.h"
 #include "lvgl.h"
+#include "freertos/queue.h"
+
+#define QUEUE_ELEMENT_NMAX 3
 
 
-#define DISPLAY_INIT_MESSAGE    "QMAX-IOT iniciando sistema..."
+typedef enum{
+    DISPLAY_CONN_MESSAGE,
+    DISPLAY_MODBUS_MESSAGE,
+    DISPLAY_ALARM_MESSAGE
+} msg_type_t;
+
+typedef struct {
+msg_type_t type;
+const char* message;
+}display_msg_type_t;
+
+
+QueueHandle_t display_queue  = NULL;
+
 static const char *TAG = "example";
 
 
@@ -26,8 +42,17 @@ static const char *TAG = "example";
  *          | Conexion Modbus|  Ejemplo: dispositivo conectado, etc  |
  *          | Estado de las alarmas| Ejemplo: Sensor de temperatura  |    
  *          
- * 
  */
+
+
+
+    lv_obj_t *scr = NULL;
+    lv_obj_t *conn_label  = NULL;
+    lv_obj_t *modbus_label = NULL;
+    lv_obj_t *alarm_label = NULL;
+
+
+static void display_task(void* params);
 
 
 void display_init(  const char* conn_text, 
@@ -93,42 +118,57 @@ void display_init(  const char* conn_text,
     lv_disp_set_rotation(disp, LV_DISP_ROT_180);
     ESP_LOGI(TAG, "Display LVGL Scroll Text");
     if(lvgl_port_lock(0)) {
-        lv_obj_t *scr = lv_disp_get_scr_act(disp);
-        lv_obj_t *conn_label = lv_label_create(scr); 
+        scr = lv_disp_get_scr_act(disp);
+        conn_label = lv_label_create(scr); 
         lv_label_set_long_mode(conn_label,LV_LABEL_LONG_SCROLL_CIRCULAR);
         lv_obj_set_width(conn_label,disp->driver->hor_res);
-        lv_obj_align(conn_label, LV_ALIGN_TOP_LEFT, 0, 0);
+        lv_obj_align(conn_label,     LV_ALIGN_TOP_LEFT, 0, 0);
         lv_label_set_text(conn_label,(conn_text)?conn_text:"Estado de la conexion");
 
-         lv_obj_t *modbus_label = lv_label_create(scr); 
+         modbus_label = lv_label_create(scr); 
         //lv_label_set_long_mode(label, LV_LABEL_LONG_SCROLL_CIRCULAR); /* Circular scroll */
-        lv_label_set_long_mode(modbus_label,LV_LABEL_LONG_CLIP);
+        lv_label_set_long_mode(modbus_label,LV_LABEL_LONG_SCROLL_CIRCULAR);
         /* Size of the screen (if you use rotation 90 or 270, please set disp->driver->ver_res) */
         lv_obj_set_width(modbus_label,disp->driver->hor_res);
-        lv_obj_align(modbus_label, LV_ALIGN_CENTER, 0, 0);
+        lv_obj_align(modbus_label,     LV_ALIGN_TOP_LEFT, 0, 20);
         lv_label_set_text(modbus_label,(modbus_text)?modbus_text:"Estado Modbus conn");
-
-
-
-         lv_obj_t *alarm_label = lv_label_create(scr); 
+        
+        alarm_label = lv_label_create(scr); 
         //lv_label_set_long_mode(label, LV_LABEL_LONG_SCROLL_CIRCULAR); /* Circular scroll */
-        lv_label_set_long_mode(alarm_label,LV_LABEL_LONG_CLIP);
+        lv_label_set_long_mode(alarm_label,LV_LABEL_LONG_SCROLL_CIRCULAR);
         /* Size of the screen (if you use rotation 90 or 270, please set disp->driver->ver_res) */
         lv_obj_set_width(alarm_label,disp->driver->hor_res);
-        lv_obj_align(alarm_label, LV_ALIGN_BOTTOM_MID, 0, 0);
+        lv_obj_align(alarm_label,     LV_ALIGN_TOP_LEFT, 0, 40);
         lv_label_set_text(alarm_label,(alarm_text)?alarm_label:"Estado de Alarma");
-    
-    //lv_task_handler();
-    //vTaskDelay(1000 / portTICK_PERIOD_MS);
-    lvgl_port_unlock();
-
+        lvgl_port_unlock();
     }
+
+    xTaskCreate(display_task,"Display task",4000,NULL,10,NULL);
 
 }
 
 
 
+void display_send_alarm(const char* msg){
+    display_msg_type_t alarm = {0};
+    alarm.message  = msg;
+    alarm.type = DISPLAY_ALARM_MESSAGE;
+    xQueueSend(display_queue,&alarm,1000);
+}
+void display_send_modbus(const char* msg){
+    display_msg_type_t modbus = {0};
+    modbus.message  = msg;
+    modbus.type = DISPLAY_MODBUS_MESSAGE;
+    xQueueSend(display_queue,&modbus,1000);
+}
 
+void display_send_conn(const char* msg){
+
+    display_msg_type_t conn = {0};
+    conn.message  = msg;
+    conn.type = DISPLAY_CONN_MESSAGE;
+    xQueueSend(display_queue,&conn,1000);
+}
 
 
 
@@ -136,11 +176,66 @@ void display_init(  const char* conn_text,
 void display_task(void* params){
 
 
+    display_queue = xQueueCreate(QUEUE_ELEMENT_NMAX,sizeof(display_msg_type_t));
+
+    display_msg_type_t msg = {0};
+
+
 
 
     while(1){
     
-    lv_task_handler();
+    if (xQueueReceive(display_queue, &msg, (TickType_t) 10000) == pdTRUE) {
+
+        // Procesar el mensaje recibido
+         if(lvgl_port_lock(0)) {
+            //Editar los elementos
+
+            switch (msg.type)
+            {
+
+            case DISPLAY_CONN_MESSAGE:
+                printf("conn label: %s\n",msg.message);
+                lv_label_set_long_mode(conn_label,LV_LABEL_LONG_SCROLL_CIRCULAR);
+                lv_label_set_text(conn_label,msg.message);
+                lv_obj_set_width(conn_label,EXAMPLE_LCD_H_RES);
+                lv_obj_align(conn_label, LV_ALIGN_TOP_LEFT, 0, 0);
+
+                break;    
+
+            case DISPLAY_MODBUS_MESSAGE:
+                printf("Modbus message\n");
+                /* Size of the screen (if you use rotation 90 or 270, please set disp->driver->ver_res) */
+                lv_obj_align(modbus_label, LV_ALIGN_TOP_LEFT, 0, 20);
+                lv_label_set_text(modbus_label,msg.message);
+                lv_obj_set_width(modbus_label,EXAMPLE_LCD_H_RES);
+
+                break;
+
+            case DISPLAY_ALARM_MESSAGE:
+                printf("Alarma message\n");
+                lv_obj_align(alarm_label, LV_ALIGN_BOTTOM_MID, 0, 0);
+                lv_label_set_text(alarm_label,msg.message);
+                lv_obj_set_width(alarm_label,EXAMPLE_LCD_H_RES);
+                lv_obj_align(alarm_label, LV_ALIGN_TOP_LEFT, 0, 40);
+
+                break;
+
+          
+            default:
+                break;
+            }
+           // Refrescar pantalla
+            lv_task_handler();
+            lvgl_port_unlock(); 
+         }
+
+       
+    }
+
+
+   
+    
     vTaskDelay(100 / portTICK_PERIOD_MS);
 
 

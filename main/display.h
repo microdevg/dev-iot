@@ -32,6 +32,13 @@ void display_init(  const char* conn_text,
                     const char* alarm_text);
 
 
+void display_send_alarm(const char* msg);
 
+
+
+void display_send_modbus(const char* msg);
+
+
+void display_send_conn(const char* msg);
 
 #endif
