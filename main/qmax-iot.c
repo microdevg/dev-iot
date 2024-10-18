@@ -21,11 +21,14 @@ void app_main(void)
     printf(" Oled test example\n");   
     int counter = 0;
     char buffer[50]={0};
-    modbus_init();
-    display_init(  NULL, "Modbus RTU init", NULL);   
+ 
+ 
+
+    display_init(  "linea 1", "Modbus RTU init", "linea 3");   
  while(1){
     sprintf(buffer,"counter: %d\n",counter++);
     printf(buffer);
+    if(counter == 5)display_send_alarm("Alarma activada");
 
 
     vTaskDelay(1000 / portTICK_PERIOD_MS);

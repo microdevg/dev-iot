@@ -132,7 +132,7 @@ void display_init(  const char* conn_text,
         lv_obj_set_width(modbus_label,disp->driver->hor_res);
         lv_obj_align(modbus_label,     LV_ALIGN_TOP_LEFT, 0, 20);
         lv_label_set_text(modbus_label,(modbus_text)?modbus_text:"Estado Modbus conn");
-        
+
         alarm_label = lv_label_create(scr); 
         //lv_label_set_long_mode(label, LV_LABEL_LONG_SCROLL_CIRCULAR); /* Circular scroll */
         lv_label_set_long_mode(alarm_label,LV_LABEL_LONG_SCROLL_CIRCULAR);
@@ -140,6 +140,8 @@ void display_init(  const char* conn_text,
         lv_obj_set_width(alarm_label,disp->driver->hor_res);
         lv_obj_align(alarm_label,     LV_ALIGN_TOP_LEFT, 0, 40);
         lv_label_set_text(alarm_label,(alarm_text)?alarm_label:"Estado de Alarma");
+        
+        
         lvgl_port_unlock();
     }
 
@@ -214,7 +216,6 @@ void display_task(void* params){
 
             case DISPLAY_ALARM_MESSAGE:
                 printf("Alarma message\n");
-                lv_obj_align(alarm_label, LV_ALIGN_BOTTOM_MID, 0, 0);
                 lv_label_set_text(alarm_label,msg.message);
                 lv_obj_set_width(alarm_label,EXAMPLE_LCD_H_RES);
                 lv_obj_align(alarm_label, LV_ALIGN_TOP_LEFT, 0, 40);
