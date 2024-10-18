@@ -27,7 +27,7 @@ Para ejecutar QMAX-IOT, asegúrate de cumplir con los siguientes requisitos:
 
 ### Display Oled (I2C)
 La configuracion de conexion del display esta en el archivo display.h
-```
+```c
 main/display.h
 
 #define EXAMPLE_LCD_PIXEL_CLOCK_HZ    (400 * 1000)
@@ -35,3 +35,12 @@ main/display.h
 #define EXAMPLE_PIN_NUM_SCL           4
 
 ```
+
+## Placa de desarrollo utilizada:
+
+![img](./imgs/esp32_pinout.jpg)
+
+#### Display funcionando
+
+[![Video en YouTube](https://img.youtube.com/vi/NwVFDcGVwvg/0.jpg)](https://youtu.be/NwVFDcGVwvg)
+
