@@ -125,12 +125,12 @@ void display_init(  const char* conn_text,
         lv_obj_align(conn_label,     LV_ALIGN_TOP_LEFT, 0, 0);
         lv_label_set_text(conn_label,(conn_text)?conn_text:"Estado de la conexion");
 
-         modbus_label = lv_label_create(scr); 
+        modbus_label = lv_label_create(scr); 
         //lv_label_set_long_mode(label, LV_LABEL_LONG_SCROLL_CIRCULAR); /* Circular scroll */
         lv_label_set_long_mode(modbus_label,LV_LABEL_LONG_SCROLL_CIRCULAR);
         /* Size of the screen (if you use rotation 90 or 270, please set disp->driver->ver_res) */
         lv_obj_set_width(modbus_label,disp->driver->hor_res);
-        lv_obj_align(modbus_label,     LV_ALIGN_TOP_LEFT, 0, 20);
+        lv_obj_align(modbus_label,LV_ALIGN_TOP_LEFT, 0, 20);
         lv_label_set_text(modbus_label,(modbus_text)?modbus_text:"Estado Modbus conn");
 
         alarm_label = lv_label_create(scr); 
@@ -138,8 +138,8 @@ void display_init(  const char* conn_text,
         lv_label_set_long_mode(alarm_label,LV_LABEL_LONG_SCROLL_CIRCULAR);
         /* Size of the screen (if you use rotation 90 or 270, please set disp->driver->ver_res) */
         lv_obj_set_width(alarm_label,disp->driver->hor_res);
-        lv_obj_align(alarm_label,     LV_ALIGN_TOP_LEFT, 0, 40);
-        lv_label_set_text(alarm_label,(alarm_text)?alarm_label:"Estado de Alarma");
+        lv_obj_align(alarm_label,LV_ALIGN_TOP_LEFT, 0, 40);
+        lv_label_set_text(alarm_label,(alarm_text)?alarm_text:"Estado de Alarma");
         
         
         lvgl_port_unlock();
