@@ -22,3 +22,16 @@ Para ejecutar QMAX-IOT, asegúrate de cumplir con los siguientes requisitos:
 
 - **Software**:
   - **Espressif IoT Development Framework (IDF.py)** 
+
+
+
+### Display Oled (I2C)
+La configuracion de conexion del display esta en el archivo display.h
+```
+main/display.h
+
+#define EXAMPLE_LCD_PIXEL_CLOCK_HZ    (400 * 1000)
+#define EXAMPLE_PIN_NUM_SDA           3
+#define EXAMPLE_PIN_NUM_SCL           4
+
+```
