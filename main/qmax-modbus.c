@@ -232,12 +232,14 @@ uint16_t devices_registers[N_DEVICE_REGISTER]={0};
   printf("data 7: %d\n",devices_registers[6]);
   printf("data 8: %d\n",devices_registers[7]);
 
-    printf("Finalizo exitosamente\n");
-
-     
+  printf("Finalizo exitosamente\n");
 
 
-    printf("Finalizo exitosamente\n");
+
+}
 
 
+
+void modbus_config(){
+        
 }
