@@ -45,3 +45,35 @@ main/display.h
 
 
 ![img](./imgs/display_working.gif)
+
+
+#### Prueba modbus
+
+Prueba sencilla, leo 8 registros consecutivos (16bits). La peticion MODBUS es la siguiente
+```c
+#define SLAVE_ADRRESS          7
+#define START_REGISTER         2
+#define N_DEVICE_REGISTER      8
+#define FUNC_READ_REGISTERS   3 // Codigo de funcion modbus, leer manual
+    
+// Peticion simple
+    mb_param_request_t req1 = {
+        .slave_addr = SLAVE_ADRRESS,
+        .command = FUNC_READ_REGISTERS ,      // leer registro
+        .reg_start = START_REGISTER,      // Direccion inicial del registro
+        .reg_size = N_DEVICE_REGISTER       // Cantidad de registro
+    };
+
+```
+
+#### Simulador: comunicacion mediante puerto Serial
+
+![img](./imgs/simulator_slave_modbus.jpg)
+
+#### Simulador: mapa de memoria simulado
+![img](./imgs/mapa_memoria.jpg)
+
+
+#### Terminal
+
+![img](./imgs/terminal_esp32.jpg)

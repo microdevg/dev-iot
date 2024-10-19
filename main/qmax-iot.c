@@ -11,24 +11,20 @@
 #include "qmax-modbus.h"
 
 
-/**
- * Ejemplo de uso de la pantalla con una 
- * secuencia de evento que escribe la pantalla
- */
+
 
 void app_main(void)
 {
-    printf(" Oled test example\n");   
-    int counter = 0;
-    char buffer[50]={0};
  
- 
+// Inicio la pantalla
+    display_init(  "WiFi CONECTADO", "Modbus RTU", " Probando modbus");
+    printf("Prueba Modbus, request simple\n");
 
-    display_init(  "linea 1", "Modbus RTU init", "linea 3");   
+    modbus_init();
+   
  while(1){
-    sprintf(buffer,"counter: %d\n",counter++);
-    printf(buffer);
-    if(counter == 5)display_send_alarm("Alarma activada");
+    
+  
 
 
     vTaskDelay(1000 / portTICK_PERIOD_MS);
