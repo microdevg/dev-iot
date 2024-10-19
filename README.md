@@ -42,5 +42,6 @@ main/display.h
 
 #### Display funcionando
 
-[![Video en YouTube](https://img.youtube.com/vi/NwVFDcGVwvg/0.jpg)](https://youtu.be/NwVFDcGVwvg)
 
+
+![img](./imgs/display_working.gif)
