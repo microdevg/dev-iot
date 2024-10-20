@@ -12,65 +12,36 @@
 
 
 // Probemos parseo de json
-#include "jsmn.h"
-#include <string.h>
 
 
-const char cfg_mb_json[]="{ \"TIPO_MODBUS\" : \"RTU\", \"BAUDIOS\" : 115200 , \"PARIDAD\": \"NO\"}";  // Contiene 4 tokens
+   // RTU == 0 , ASCII == 1 , TCPIP == 2
 
-
+char json[] = "{\"TYPE\":1,\"BAUDRATE\": 19200,\"PARITY\": 0 ,\"ADDRSLAVE\": 12}";
 
 
 
 void app_main(void)
 {
  
-    //display_init(  "WiFi CONECTADO", "Modbus RTU", " Probando modbus");
-   // printf("Prueba Modbus, request simple\n");
-   // modbus_init();
-    jsmn_parser parser;
-    #define NUM_TOKENS      5
-    jsmntok_t tokens[NUM_TOKENS];
+   printf("parseo de :%s\n",json);
 
-    jsmn_init(&parser);
+  mb_communication_info_t comm = {0};
+   // Si sale todo bien retorna la direccion del esclavo, sino -1 por error
+  int slave =  modbus_json_config( json,&comm);
 
-    // js - pointer to JSON string
-    // tokens - an array of tokens available
-    // 10 - number of tokens available
-    printf("Quiero parsear \n%s\n",cfg_mb_json);
-    jsmn_parse(&parser, cfg_mb_json, strlen(cfg_mb_json), tokens, NUM_TOKENS);
+if(slave != -1){
+   printf("comunicate con slave:%d\n",slave);
+   modbus_init(&comm,slave);
+   char buf[30] = {0};
+   sprintf(buf,"MBSLAVE:%d",slave);
+   char buf2[30] = {0};
+   sprintf(buf2,"Baudrate:%ld",comm.baudrate);
+   display_init(  "WiFi CONECTADO",buf, buf2);
+}
+else{
+   printf("Erro al configurar\n");
+}
 
-
-    for(int i = 0; i< NUM_TOKENS ; i++)
-    {
-       // printf("token: %d\n",i);
-        switch (tokens[i].type)
-        {
-        case JSMN_UNDEFINED:
-            printf("es indefinido\n");
-            break;
-        
-        case JSMN_ARRAY: 
-            printf("define un array de elementos\n");
-            break;
-        
-        case JSMN_STRING:
-            printf("define un string\n");
-            break;
-
-        case JSMN_PRIMITIVE:
-            printf("define un primitivo\n");
-            break;
-        
-        default:
-            break;
-        }   
-        printf("->%.*s\n",(tokens[i].end-tokens[i].start),&cfg_mb_json[tokens[i].start]);
-
-    }
-
-
-   printf("Probando libreria jsmn para manejar json\n");
 
 
    

@@ -6,16 +6,24 @@
 
 #include "string.h"
 #include "esp_log.h"
-#include "modbus_params.h"  // for modbus parameters structures
-#include "mbcontroller.h"
+
+
+
+
+#include <stdlib.h>
+
+#include "jsmn.h"
+#include <string.h>
+
+
 //#include "sdkconfig.h"
 
-//#define CONFIG_MB_UART_PORT_TWO 1
-//#define CONFIG_MB_UART_PORT_NUM 2
-//#define CONFIG_MB_UART_BAUD_RATE 115200
-//#define CONFIG_MB_UART_RXD 22
-//#define CONFIG_MB_UART_TXD 23
-//#define CONFIG_MB_UART_RTS 18
+#define CONFIG_MB_UART_PORT_TWO 1
+#define CONFIG_MB_UART_PORT_NUM 2
+#define CONFIG_MB_UART_BAUD_RATE 115200
+#define CONFIG_MB_UART_RXD 22
+#define CONFIG_MB_UART_TXD 23
+#define CONFIG_MB_UART_RTS 18
 //#define CONFIG_MB_COMM_MODE_RTU 1
 
 
@@ -76,34 +84,7 @@ enum {
 };
 
 
-/**
- * 
- * const mb_parameter_descriptor_t device_parameters[] = {
-    // { CID, Param Name, Units, Modbus Slave Addr, Modbus Reg Type, Reg Start, Reg Size, Instance Offset, Data Type, Data Size, Parameter Options, Access Mode}
-    { CID_INP_DATA_0, STR("Data_channel_0"), STR("Volts"), MB_DEVICE_ADDR1, MB_PARAM_INPUT, 0, 2,
-            INPUT_OFFSET(input_data0), PARAM_TYPE_FLOAT, 4, OPTS( -10, 10, 1 ), PAR_PERMS_READ_WRITE_TRIGGER },
-    { CID_HOLD_DATA_0, STR("Humidity_1"), STR("%rH"), MB_DEVICE_ADDR1, MB_PARAM_HOLDING, 0, 2,
-            HOLD_OFFSET(holding_data0), PARAM_TYPE_FLOAT, 4, OPTS( 0, 100, 1 ), PAR_PERMS_READ_WRITE_TRIGGER },
-    { CID_INP_DATA_1, STR("Temperature_1"), STR("C"), MB_DEVICE_ADDR1, MB_PARAM_INPUT, 2, 2,
-            INPUT_OFFSET(input_data1), PARAM_TYPE_FLOAT, 4, OPTS( -40, 100, 1 ), PAR_PERMS_READ_WRITE_TRIGGER },
-    { CID_HOLD_DATA_1, STR("Humidity_2"), STR("%rH"), MB_DEVICE_ADDR1, MB_PARAM_HOLDING, 2, 2,
-            HOLD_OFFSET(holding_data1), PARAM_TYPE_FLOAT, 4, OPTS( 0, 100, 1 ), PAR_PERMS_READ_WRITE_TRIGGER },
-    { CID_INP_DATA_2, STR("Temperature_2"), STR("C"), MB_DEVICE_ADDR1, MB_PARAM_INPUT, 4, 2,
-            INPUT_OFFSET(input_data2), PARAM_TYPE_FLOAT, 4, OPTS( -40, 100, 1 ), PAR_PERMS_READ_WRITE_TRIGGER },
-    { CID_HOLD_DATA_2, STR("Humidity_3"), STR("%rH"), MB_DEVICE_ADDR1, MB_PARAM_HOLDING, 4, 2,
-            HOLD_OFFSET(holding_data2), PARAM_TYPE_FLOAT, 4, OPTS( 0, 100, 1 ), PAR_PERMS_READ_WRITE_TRIGGER },
-    { CID_HOLD_TEST_REG, STR("Test_regs"), STR("__"), MB_DEVICE_ADDR1, MB_PARAM_HOLDING, 10, 58,
-            HOLD_OFFSET(test_regs), PARAM_TYPE_ASCII, 116, OPTS( 0, 100, 1 ), PAR_PERMS_READ_WRITE_TRIGGER },
-    { CID_RELAY_P1, STR("RelayP1"), STR("on/off"), MB_DEVICE_ADDR1, MB_PARAM_COIL, 2, 6,
-            COIL_OFFSET(coils_port0), PARAM_TYPE_U8, 1, OPTS( 0xAA, 0x15, 0 ), PAR_PERMS_READ_WRITE_TRIGGER },
-    { CID_RELAY_P2, STR("RelayP2"), STR("on/off"), MB_DEVICE_ADDR1, MB_PARAM_COIL, 10, 6,
-            COIL_OFFSET(coils_port1), PARAM_TYPE_U8, 1, OPTS( 0x55, 0x2A, 0 ), PAR_PERMS_READ_WRITE_TRIGGER },
-    { CID_DISCR_P1, STR("DiscreteInpP1"), STR("on/off"), MB_DEVICE_ADDR1, MB_PARAM_DISCRETE, 2, 7,
-            DISCR_OFFSET(discrete_input_port1), PARAM_TYPE_U8, 1, OPTS( 0xAA, 0x15, 0 ), PAR_PERMS_READ_WRITE_TRIGGER }
-};
- * 
- * 
- */
+
 
 // Example Data (Object) Dictionary for Modbus parameters:
 // The CID field in the table must be unique.
@@ -147,31 +128,22 @@ const uint16_t num_device_parameters = (sizeof(device_parameters)/sizeof(device_
 
 
 // Modbus master initialization
-static esp_err_t master_init(void)
+static esp_err_t master_init(mb_communication_info_t* comm)
 {
-    // Initialize and start Modbus controller
-    mb_communication_info_t comm = {
-            .port = MB_PORT_NUM,
-            .mode = MB_MODE_RTU,
-            .baudrate = MB_DEV_SPEED,
-            .parity = MB_PARITY_NONE
-    };
+
     void* master_handler = NULL;
 
     esp_err_t err = mbc_master_init(MB_PORT_SERIAL_MASTER, &master_handler);
-
-    // Check para revisar si la inicializacion dio error
     MB_RETURN_ON_FALSE((master_handler != NULL), ESP_ERR_INVALID_STATE, TAG,
                                 "mb controller initialization fail.");
     MB_RETURN_ON_FALSE((err == ESP_OK), ESP_ERR_INVALID_STATE, TAG,
                             "mb controller initialization fail, returns(0x%x).", (int)err);
-    err = mbc_master_setup((void*)&comm);
+
+    err = mbc_master_setup((void*)comm);
     MB_RETURN_ON_FALSE((err == ESP_OK), ESP_ERR_INVALID_STATE, TAG,
                             "mb controller setup fail, returns(0x%x).", (int)err);
 
-    // Set UART pin numbers
-    err = uart_set_pin(MB_PORT_NUM, 22, 23,
-                              18, UART_PIN_NO_CHANGE);
+    err = uart_set_pin(MB_PORT_NUM, 22, 23, 18, UART_PIN_NO_CHANGE);
     MB_RETURN_ON_FALSE((err == ESP_OK), ESP_ERR_INVALID_STATE, TAG,
         "mb serial set pin failure, uart_set_pin() returned (0x%x).", (int)err);
 
@@ -194,9 +166,11 @@ static esp_err_t master_init(void)
 
 
 
-void modbus_init(){
+void modbus_init(mb_communication_info_t* cfg,uint8_t slave_address)
+{
      // Initialization of device peripheral and objects
-    ESP_ERROR_CHECK(master_init());
+   printf("Iniciamos modbus con configuracion extraida de json file\n");
+    ESP_ERROR_CHECK(master_init(cfg));
     vTaskDelay(10);
 
    // master_operation_func(NULL);
@@ -208,7 +182,7 @@ void modbus_init(){
     
 // Peticion simple
     mb_param_request_t req1 = {
-        .slave_addr = SLAVE_ADRRESS,
+        .slave_addr = slave_address,
         .command = FUNC_READ_REGISTERS ,      // leer registro
         .reg_start = START_REGISTER,      // Direccion inicial del registro
         .reg_size = N_DEVICE_REGISTER       // Cantidad de registro
@@ -234,12 +208,173 @@ uint16_t devices_registers[N_DEVICE_REGISTER]={0};
 
   printf("Finalizo exitosamente\n");
 
-
-
 }
 
 
 
-void modbus_config(){
-        
+
+
+
+
+#define NUM_PARAMETERS                  8
+#define MODBUS_PARAM_TYPE           "TYPE"
+#define MODBUS_PARAM_BAUDIOS        "BAUDRATE"
+#define MODBUS_PARAM_PARIRY         "PARITY"
+#define MODBUS_PARAM_ADDRS          "ADDRSLAVE"
+
+
+/**
+ * @brief Ejemplo de json de configuracion para mb serial rtu
+ *   {  "TYPE":0,               // RTU == 0 , ASCII == 1 , TCPIP == 2
+ *      "BAUDRATE": 115200,
+ *      "PARITY": 0 ,          // NO == 0 , SI == 1
+ *      "ADDRSLAVE": 7 
+ *      }
+ */
+
+
+#define JSON_FORMAT_ERROR     (-1)
+#define JSON_PARSE_SUCCESS      (1)
+#define JSON_PARSE_TYPE_RTU     0
+#define JSON_PARSE_TYPE_ASCII   1
+#define JSON_PARSE_TYPE_TCPIP   2
+#define JSON_PARSE_PARITY_NONE  0
+#define JSON_PARSE_PARITY_EVEN  1
+#define JSON_PARSE_PARITY_ODD   2
+
+
+
+// Macros para simplificar el chequeo de tipo y comparación
+// Macro generalizada para verificar token y tipo
+#define PARSE_JSON_BUFFER_LEN   50
+#define GET_POUNTER_TOKEN_STRING(tokens,idx)      &json[tokens[idx].start]
+#define CHECK_JSON_TOKEN_ELEMENT(tokens, idx, json_type, expected_obj) \
+    if ((tokens[idx].type != json_type) || (strncmp( &json[tokens[idx].start], expected_obj,(tokens[idx].end - tokens[idx].start)) != 0)) \
+        return JSON_FORMAT_ERROR;
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+uint8_t modbus_json_config(char* json ,mb_communication_info_t* comm)
+{
+
+comm->port = MB_PORT_NUM; // El puerto siempre es el mismo
+char buffer[PARSE_JSON_BUFFER_LEN] = {0};
+
+jsmntok_t tokens[NUM_PARAMETERS+1]; // El primer no es valido.
+jsmn_parser parser;
+jsmn_init(&parser);
+jsmn_parse(&parser, json, strlen(json), tokens, NUM_PARAMETERS+1);
+
+
+CHECK_JSON_TOKEN_ELEMENT(tokens,1,JSMN_STRING,MODBUS_PARAM_TYPE);
+CHECK_JSON_TOKEN_ELEMENT(tokens,3,JSMN_STRING,MODBUS_PARAM_BAUDIOS);
+CHECK_JSON_TOKEN_ELEMENT(tokens,5,JSMN_STRING,MODBUS_PARAM_PARIRY);
+CHECK_JSON_TOKEN_ELEMENT(tokens,7,JSMN_STRING,MODBUS_PARAM_ADDRS);
+
+//char * type =             GET_POUNTER_TOKEN_STRING(tokens,1);
+char * type_val =         GET_POUNTER_TOKEN_STRING(tokens,2);
+//char * baud =             GET_POUNTER_TOKEN_STRING(tokens,3);
+char * baud_val =         GET_POUNTER_TOKEN_STRING(tokens,4);
+
+//char * parity =           GET_POUNTER_TOKEN_STRING(tokens,5);
+char * parity_val =       GET_POUNTER_TOKEN_STRING(tokens,6);
+//char * addrs =            GET_POUNTER_TOKEN_STRING(tokens,7);
+char * addrs_val =        GET_POUNTER_TOKEN_STRING(tokens,8);
+
+//int    type_len =       tokens[1].end - tokens[1].start;
+int    type_val_len =   tokens[2].end - tokens[2].start;
+//int    baud_len =       tokens[3].end - tokens[3].start;
+int    baud_val_len =   tokens[4].end - tokens[4].start;
+//int    parity_len =     tokens[5].end - tokens[5].start;
+int    parity_val_len = tokens[6].end - tokens[6].start;
+//int    addrs_len =      tokens[7].end - tokens[7].start;
+int    addrs_val_len =  tokens[8].end - tokens[8].start;
+
+
+
+
+//printf("type:%.*s\n",type_len,type);
+//printf("type:%.*s\n",type_val_len,type_val);
+//printf("baud:%.*s\n",baud_len,baud);
+//printf("baud:%.*s\n",baud_val_len,baud_val);
+//printf("parity:%.*s\n",parity_len,parity);
+//printf("parity:%.*s\n",parity_val_len,parity_val);
+//printf("addrs:%.*s\n",addrs_len,addrs);
+//printf("addrs:%.*s\n",addrs_val_len,addrs_val);
+
+
+strncpy(buffer,type_val,type_val_len);
+buffer[type_val_len]=0;
+int modbus_type  = atoi(buffer); // Convierte la cadena a un entero
+
+switch (modbus_type)
+  {
+        case JSON_PARSE_TYPE_RTU:
+                printf("modbus type: RTU\n");
+                comm->mode = MB_MODE_RTU;
+                break;
+        case JSON_PARSE_TYPE_ASCII:
+                printf("modbus type: ASCII\n");
+                comm->mode = MB_MODE_ASCII;
+                break;
+        case JSON_PARSE_TYPE_TCPIP:
+                printf("modbus type: TCP/IP[AUN NO IMPLEMENTADO]\n");
+                comm->mode = MB_MODE_TCP;
+                return JSON_FORMAT_ERROR;
+                break;
+        default:
+                return JSON_FORMAT_ERROR;
+                break;
+  }
+
+     strncpy(buffer,baud_val,baud_val_len);
+     buffer[baud_val_len]=0;
+     int _baudios  = atoi(buffer); // Convierte la cadena a un entero
+     printf("baudios:%d\n",_baudios);
+
+     if( _baudios > 0 && _baudios <= 115200) comm->baudrate = _baudios;
+     strncpy(buffer,parity_val,parity_val_len);
+     buffer[parity_val_len]=0;
+     int _parity  = atoi(buffer); // Convierte la cadena a un entero
+
+     switch (_parity)
+  {
+        case JSON_PARSE_PARITY_NONE:
+                printf("Sin paridad\n");
+                comm->parity = MB_PARITY_NONE;
+                break;
+        case     JSON_PARSE_PARITY_EVEN   :
+
+                printf("Paridad par\n");
+                comm->parity = UART_PARITY_EVEN;
+                break;
+        case JSON_PARSE_PARITY_ODD:
+                printf("Paridad impar\n");
+                comm->parity = UART_PARITY_ODD;        
+                break;
+        default:
+                return JSON_FORMAT_ERROR;
+                break;
+  }
+     
+     strncpy(buffer,addrs_val,addrs_val_len);
+     buffer[addrs_val_len]=0;
+     int _addrss  = atoi(buffer); // Convierte la cadena a un entero
+     printf("adress slave:%d\n",_addrss);
+
+        return _addrss; // OK
+
 }
